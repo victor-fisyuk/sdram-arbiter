@@ -53,6 +53,24 @@ row-miss ratio, command-bus and refresh use).
 - Fully open toolchain: Yosys with yosys-slang, nextpnr-ecp5; Verilator for simulation, with a
   protocol-checking SDRAM model.
 
+## Demo: galaxy splat renderer
+
+[![SDRAM Arbiter on FPGA – Galaxy Demo (ULX3S)](https://img.youtube.com/vi/KMo5h-kqXBI/hqdefault.jpg)](https://www.youtube.com/watch?v=KMo5h-kqXBI)
+
+A standalone demo renders a rotating spiral galaxy of 24,576 depth-tested stars at 640×480, generated on
+the FPGA with no PC attached. Every frame clears the colour and depth buffers, streams the star records,
+and does a depth read-modify-write and a colour write for every visible star, while the display scans out
+the other buffer — each SDRAM bank serving a different client at once:
+
+| Bank | Client | Traffic |
+|---|---|---|
+| 0 / 1 | display, framebuffer, framebuffer clear | scanout of one buffer; clear and random colour writes into the other |
+| 2 | depth buffer, depth buffer clear | clear and random depth read-modify-write |
+| 3 | texture | sequential star-record stream |
+
+On the ULX3S at 130 MHz it holds a steady 60 frames per second (the display refresh rate; the page flip
+waits for vblank), with the live SDRAM performance panel on screen.
+
 ## License
 
 To be decided when the source is published.
