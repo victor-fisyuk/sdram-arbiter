@@ -55,7 +55,7 @@ row-miss ratio, command-bus and refresh use).
 
 ## Demo: galaxy splat renderer
 
-[![SDRAM Arbiter on FPGA – Galaxy Demo (ULX3S)](https://img.youtube.com/vi/KMo5h-kqXBI/hqdefault.jpg)](https://www.youtube.com/watch?v=KMo5h-kqXBI)
+[![SDRAM Arbiter for FPGA - Galaxy Demo (ULX3S)](https://img.youtube.com/vi/KMo5h-kqXBI/hqdefault.jpg)](https://www.youtube.com/watch?v=KMo5h-kqXBI)
 
 A standalone demo renders a rotating spiral galaxy of 24,576 depth-tested stars at 640×480, generated on
 the FPGA with no PC attached. Every frame clears the colour and depth buffers, streams the star records,
@@ -70,6 +70,32 @@ the other buffer — each SDRAM bank serving a different client at once:
 
 On the ULX3S at 130 MHz it holds a steady 60 frames per second (the display refresh rate; the page flip
 waits for vblank), with the live SDRAM performance panel on screen.
+
+## Demo: fractal flame
+
+[![SDRAM Arbiter for FPGA - Fractal Flame Demo (ULX3S)](https://img.youtube.com/vi/guGGuJXExok/hqdefault.jpg)](https://www.youtube.com/watch?v=guGGuJXExok)
+
+A second standalone demo renders a fractal flame — an iterated function system of four affine maps with nonlinear
+variations — generated on the FPGA with no PC attached. Every frame the FPGA computes 69,632 points; each one
+that lands on screen is added to a 640×480 histogram in SDRAM with one read-modify-write at an effectively random
+address. Outside the bright cores there is little reuse and no spatial locality, so a cache would rarely hit. The
+histogram is spread over all four banks in 512-pixel blocks (one SDRAM row each), and four read-modify-write
+engines, one per bank, overlap their row misses. A tone-map pass then decays the histogram and turns it into a
+glowing RGB565 image (log density, automatic exposure) while the display scans out the other buffer. Eight
+presets take turns: each holds for 30 seconds, then morphs into the next over 5 seconds.
+
+The demo borrows the arbiter's fixed client ports whatever their names:
+
+| Bank | Client | Traffic |
+|---|---|---|
+| 0 | depth buffer, display, framebuffer clear | histogram read-modify-write; scanout, or tone-mapped writes (swapping with bank 1 every frame) |
+| 1 | framebuffer, display, framebuffer clear | histogram read-modify-write; scanout, or tone-mapped writes (swapping with bank 0 every frame) |
+| 2 | host framebuffer access | histogram read-modify-write |
+| 3 | texture, host texture upload | histogram read-modify-write (reads on one client, writes on the other) |
+| 0–3 | depth buffer clear | zeroes the histogram once at start-up |
+
+On the ULX3S at 130 MHz it holds a steady 60 frames per second, with the live SDRAM performance panel on
+screen.
 
 ## License
 
