@@ -50,6 +50,8 @@ row-miss ratio, command-bus and refresh use).
 - Board: Radiona ULX3S (Lattice ECP5-85F) with its on-board 32 MB SDRAM (W9825G6KH-6, 4 × 8192 rows × 512
   columns × 16 bit).
 - Render/SDRAM clock: 130 MHz, verified on hardware.
+- Arbiter size: about 6,200 LUT4 and 3,700 flip-flops (under 8 % of the ECP5-85F), no block RAM, no DSP;
+  the per-client request FIFOs are in about 90 small LUT-RAM cells.
 - Fully open toolchain: Yosys with yosys-slang, nextpnr-ecp5; Verilator for simulation, with a
   protocol-checking SDRAM model.
 
