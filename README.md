@@ -97,6 +97,39 @@ The demo borrows the arbiter's fixed client ports whatever their names:
 On the ULX3S at 130 MHz it holds a steady 60 frames per second, with the live SDRAM performance panel on
 screen.
 
+## Demo: voxel terrain
+
+[![SDRAM Arbiter for FPGA - Voxel Terrain Demo (ULX3S)](https://img.youtube.com/vi/57LyhwzPfSM/hqdefault.jpg)](https://www.youtube.com/watch?v=57LyhwzPfSM)
+
+A third standalone demo flies a camera over a voxel landscape, generated on the FPGA with no PC attached. At
+start-up the FPGA computes a 2048×2048 height-and-colour map (value noise with water, sand, grass, forest, rock
+and snow bands and baked sun shading) and writes all 8 MB of it into SDRAM. Every frame a column ray-marcher
+draws the landscape at 640×480: each screen column steps front to back through the map in 444 samples, with
+distance haze and a sky gradient. A fixed autopilot turns gently, follows the terrain and swings between low
+valley runs and high overviews, with no input.
+
+Where the other two demos scatter read-modify-writes, this one only reads its map: every frame makes 284,160 map reads
+along the rays of the screen columns, at addresses that depend only on the camera, never on data already read,
+so they can be issued far ahead of the data. The map is stored as 32×16-cell tiles, one tile per SDRAM row, in a
+checkerboard over two banks, so about one read in ten opens a new row. One in-order read port per bank and a
+256-entry reorder buffer keep many reads in flight, so one bank's row changes overlap the other bank's reads.
+A write cannot start while read data is still on the SDRAM data bus, so under a steady stream of reads the writes
+would rarely get a turn; the demo therefore batches its traffic itself: each group of 32 columns is rendered into
+one on-chip column buffer, then written out line by line before the next group starts, so the map reads and the
+pixel writes run in separate phases.
+
+Like the flame demo, it borrows the arbiter's fixed client ports whatever their names:
+
+| Bank | Client | Traffic |
+|---|---|---|
+| 0 / 1 | display, framebuffer | scanout of one buffer; line-by-line pixel writes into the other |
+| 2 | depth buffer | map reads (one colour of the checkerboard) |
+| 3 | texture | map reads (the other colour) |
+| 2 / 3 | host texture upload | writes the map once at start-up |
+
+On the ULX3S at 130 MHz it holds a steady 60 frames per second, with the live SDRAM performance panel on
+screen.
+
 ## License
 
 To be decided when the source is published.
